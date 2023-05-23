@@ -13,7 +13,7 @@ AStoryDirector::AStoryDirector()
 
 void AStoryDirector::EnqueueStoryObject(const FStoryObjectStartCall startCall)
 {
-	// TODO(FK): Add actual Enqueue logic
+	// TODO(FK): Add actual enqueue logic
 	// starting object directly for now
 	if (startCall.IsBound())
 		startCall.Execute();

@@ -3,12 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/ActorComponent.h"
 #include "StoryObjectSceneComponent.generated.h"
 
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class STORYOBJECTEXAMPLE_API UStoryObjectSceneComponent : public UActorComponent
+class STORYOBJECTEXAMPLE_API UStoryObjectSceneComponent : public USceneComponent
 {
 	GENERATED_BODY()
 

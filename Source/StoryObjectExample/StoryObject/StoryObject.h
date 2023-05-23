@@ -7,6 +7,7 @@
 #include "StoryObject.generated.h"
 
 
+class AStoryObjectTrigger;
 UENUM(BlueprintType)
 enum class EStoryObjectPhase
 {
@@ -31,6 +32,9 @@ class STORYOBJECTEXAMPLE_API AStoryObject : public AActor
 protected:
 	UPROPERTY(VisibleAnywhere)
 	EStoryObjectPhase m_currentPhase;
+
+	UPROPERTY(VisibleAnywhere)
+	TArray<AStoryObjectTrigger*> m_triggerTokens;
 	
 public:
 	AStoryObject();
@@ -43,6 +47,14 @@ public:
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	EStoryObjectPhase GetCurrentPhase() const;
+
+	UFUNCTION(BlueprintCallable)
+	void AddTriggerToken(AStoryObjectTrigger* trigger);
+	UFUNCTION(BlueprintCallable)
+	void RemoveTriggerToken(AStoryObjectTrigger* trigger);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	bool IsArealStoryObject() const;
 	
 protected:
 	virtual void BeginPlay() override;
@@ -52,4 +64,6 @@ protected:
 
 	UFUNCTION()
 	void Finish();
+
+	void EvaluateTriggerState();
 };
