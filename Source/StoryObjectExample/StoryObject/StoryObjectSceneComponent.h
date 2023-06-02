@@ -3,11 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "StoryObjectClient.h"
 #include "StoryObjectSceneComponent.generated.h"
 
 
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class STORYOBJECTEXAMPLE_API UStoryObjectSceneComponent : public USceneComponent
+UCLASS(Abstract, meta=(BlueprintSpawnableComponent))
+class STORYOBJECTEXAMPLE_API UStoryObjectSceneComponent : public USceneComponent, public IStoryObjectClient
 {
 	GENERATED_BODY()
 
@@ -16,9 +17,4 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-
-public:
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
 };

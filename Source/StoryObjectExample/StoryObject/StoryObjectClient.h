@@ -6,7 +6,45 @@
 #include "UObject/Interface.h"
 #include "StoryObjectClient.generated.h"
 
-// This class does not need to be modified.
+
+DECLARE_DYNAMIC_DELEGATE_OneParam(FClientDone, UActorComponent*, client);
+
+UCLASS(BlueprintType)
+class UDependentStoryObjectClientTicket : public UObject
+{
+	GENERATED_BODY()
+
+protected:
+	UPROPERTY()
+	UActorComponent* m_client;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	EStoryObjectPhase m_startPhase;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	EStoryObjectPhase m_endPhase;
+
+	UPROPERTY()
+	TArray<UActorComponent*> m_dependencies;
+
+public:
+	UDependentStoryObjectClientTicket();
+	UDependentStoryObjectClientTicket(UActorComponent* client, EStoryObjectPhase startPhase, EStoryObjectPhase endPhase, TArray<UActorComponent*> dependencies);
+	
+	UFUNCTION(BlueprintCallable)
+	void FulfillDependency(UActorComponent* dependency);
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	bool IsTicketFulfilled() const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	bool ShouldTicketBeFulfilledThisPhase(EStoryObjectPhase currentPhase) const;
+
+	UFUNCTION(BlueprintCallable, BlueprintPure)
+	UActorComponent* GetClient() const;
+};
+
+
 UINTERFACE(BlueprintType, Blueprintable)
 class UStoryObjectClient : public UInterface
 {
@@ -20,8 +58,10 @@ class STORYOBJECTEXAMPLE_API IStoryObjectClient
 {
 	GENERATED_BODY()
 
-	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
+	UFUNCTION(BlueprintNativeEvent)
+	UDependentStoryObjectClientTicket* GetPhaseTicket(EStoryObjectPhase phase) const;
 
-	
+	UFUNCTION(BlueprintNativeEvent)
+	void Execute(EStoryObjectPhase currentPhase, const FClientDone& phaseCallback);
 };

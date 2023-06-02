@@ -6,22 +6,22 @@
 #include "GameFramework/Actor.h"
 #include "StoryObject.generated.h"
 
-
 class AStoryObjectTrigger;
+class UDependentStoryObjectClientTicket;
+
+
 UENUM(BlueprintType)
 enum class EStoryObjectPhase
 {
 	IDLE,
 	PRE_START,
-	START,
-	POST_START,
+	STARTING,
 	RUNNING,
 	PRE_STOP,
-	STOP,
-	POST_STOP,
+	STOPPING,
 	PRE_FINISH,
-	FINISH,
-	POST_FINISH
+	FINISHING,
+	FINISHED
 };
 
 UCLASS(Abstract)
@@ -35,6 +35,11 @@ protected:
 
 	UPROPERTY(VisibleAnywhere)
 	TArray<AStoryObjectTrigger*> m_triggerTokens;
+
+	UPROPERTY(VisibleAnywhere)
+	TArray<UDependentStoryObjectClientTicket*> m_remainingTickets;
+
+	TMap<EStoryObjectPhase, EStoryObjectPhase> m_phaseOrder;
 	
 public:
 	AStoryObject();
@@ -65,5 +70,19 @@ protected:
 	UFUNCTION()
 	void Finish();
 
+	void SetCurrentPhase(EStoryObjectPhase newPhase);
+
 	void EvaluateTriggerState();
+
+	void FetchTicketsForPhase(EStoryObjectPhase phase);
+
+	UFUNCTION(BlueprintCallable)
+	void ExecutePhase(EStoryObjectPhase phase);
+
+	UFUNCTION()
+	void OnClientDone(UActorComponent* client);
+
+	void EvaluateTickets();
+
+	void ProceedToNextPhase();
 };
