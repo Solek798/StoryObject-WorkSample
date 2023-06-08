@@ -16,7 +16,9 @@ public class StoryObjectExample : ModuleRules
 			"InputCore", 
 			"HeadMountedDisplay", 
 			"EnhancedInput",
-			"UMG"
+			"UMG",
+			"LevelSequence",
+			"MovieScene"
 		});
 	}
 }
