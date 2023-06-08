@@ -10,33 +10,45 @@
 
 UDependentStoryObjectClientTicket::UDependentStoryObjectClientTicket()
 	: m_client(nullptr)
-	, m_startPhase(EStoryObjectPhase::IDLE)
 	, m_endPhase(EStoryObjectPhase::IDLE)
-{ /* if created with this constructor this object is basically invalid and will always be fulfilled when asked */ }
-
-UDependentStoryObjectClientTicket::UDependentStoryObjectClientTicket(UActorComponent* client,
-                                                                     const EStoryObjectPhase startPhase,
-                                                                     const EStoryObjectPhase endPhase,
-                                                                     const TArray<UActorComponent*> dependencies)
-	: m_client(client)
-	, m_startPhase(startPhase)
-	, m_endPhase(endPhase)
-	, m_dependencies(dependencies)
 { }
+
+void UDependentStoryObjectClientTicket::SetTicketData(UActorComponent* client, const EStoryObjectPhase endPhase,
+													  const TArray<UActorComponent*> dependencies)
+{
+	m_client = client;
+	m_endPhase = endPhase;
+	m_dependencies = dependencies;
+}
 
 void UDependentStoryObjectClientTicket::FulfillDependency(UActorComponent* dependency)
 {
 	m_dependencies.Remove(dependency);
 }
 
-bool UDependentStoryObjectClientTicket::IsTicketFulfilled() const
+bool UDependentStoryObjectClientTicket::IsTicketFulfilled(const EStoryObjectPhase currentPhase) const
 {
-	return m_dependencies.Num() <= 0 || m_client == nullptr;
+	const bool clientInvalid = !IsValid();
+	const bool hasDep = HasAnyRemainingDependencies();
+	const bool isDone = IStoryObjectClient::Execute_IsClientDone(m_client, currentPhase);
+	const bool shouldFulfill = ShouldTicketBeFulfilledThisPhase(currentPhase);
+	
+	return clientInvalid || (!hasDep && isDone && shouldFulfill);
+}
+
+bool UDependentStoryObjectClientTicket::HasAnyRemainingDependencies() const
+{
+	return m_dependencies.Num() > 0;
 }
 
 bool UDependentStoryObjectClientTicket::ShouldTicketBeFulfilledThisPhase(const EStoryObjectPhase currentPhase) const
 {
 	return m_endPhase == currentPhase;
+}
+
+bool UDependentStoryObjectClientTicket::IsValid() const
+{
+	return m_client != nullptr;
 }
 
 UActorComponent* UDependentStoryObjectClientTicket::GetClient() const

@@ -14,6 +14,7 @@ UENUM(BlueprintType)
 enum class EStoryObjectPhase
 {
 	IDLE,
+	QUEUED,
 	PRE_START,
 	STARTING,
 	RUNNING,
@@ -24,11 +25,24 @@ enum class EStoryObjectPhase
 	FINISHED
 };
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPhaseChanged, EStoryObjectPhase, newPhase);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FStoryObjectFinished);
+
 UCLASS(Abstract)
 class STORYOBJECTEXAMPLE_API AStoryObject : public AActor
 {
 	GENERATED_BODY()
 
+public:
+	UPROPERTY(BlueprintAssignable)
+	FPhaseChanged OnPhaseChanged;
+	
+	UPROPERTY(BlueprintAssignable)
+	FStoryObjectFinished OnStoryObjectFinished;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	bool Repeatable;
+	
 protected:
 	UPROPERTY(VisibleAnywhere)
 	EStoryObjectPhase m_currentPhase;
@@ -67,7 +81,6 @@ protected:
 	UFUNCTION()
 	void Start();
 
-	UFUNCTION()
 	void Finish();
 
 	void SetCurrentPhase(EStoryObjectPhase newPhase);
@@ -77,12 +90,13 @@ protected:
 	void FetchTicketsForPhase(EStoryObjectPhase phase);
 
 	UFUNCTION(BlueprintCallable)
-	void ExecutePhase(EStoryObjectPhase phase);
+	void ExecutePhase(EStoryObjectPhase phase, bool checkTickets = true);
 
 	UFUNCTION()
 	void OnClientDone(UActorComponent* client);
 
 	void EvaluateTickets();
-
+	
 	void ProceedToNextPhase();
+	EStoryObjectPhase AdvancePhase();
 };

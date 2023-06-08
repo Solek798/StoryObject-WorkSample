@@ -14,14 +14,16 @@ AStoryObject::AStoryObject()
 
 	// TODO(FK): Maybe make that const somehow?
 	m_phaseOrder = {
-		{EStoryObjectPhase::IDLE, EStoryObjectPhase::PRE_START},
+		{EStoryObjectPhase::IDLE, EStoryObjectPhase::QUEUED},
+		{EStoryObjectPhase::QUEUED, EStoryObjectPhase::PRE_START},
 		{EStoryObjectPhase::PRE_START, EStoryObjectPhase::STARTING},
 		{EStoryObjectPhase::STARTING, EStoryObjectPhase::RUNNING},
 		{EStoryObjectPhase::RUNNING, EStoryObjectPhase::PRE_FINISH},
 		{EStoryObjectPhase::PRE_FINISH, EStoryObjectPhase::FINISHING},
 		{EStoryObjectPhase::FINISHING, EStoryObjectPhase::FINISHED},
+		{EStoryObjectPhase::FINISHED, EStoryObjectPhase::IDLE},
 		{EStoryObjectPhase::PRE_STOP, EStoryObjectPhase::STOPPING},
-		{EStoryObjectPhase::STOPPING, EStoryObjectPhase::FINISHING},
+		{EStoryObjectPhase::STOPPING, EStoryObjectPhase::FINISHING}
 	};
 }
 
@@ -34,12 +36,19 @@ void AStoryObject::Activate()
 	FStoryObjectStartCall startCall;
 	startCall.BindDynamic(this, &AStoryObject::Start);
 
+	AdvancePhase();
+
 	gameInstance->StoryDirector->EnqueueStoryObject(startCall);
 }
 
 void AStoryObject::Stop()
 {
-	UE_LOG(LogTemp, Error, TEXT("Stop it allready!"))
+	if (GetCurrentPhase() != EStoryObjectPhase::RUNNING)
+		return;
+	
+	SetCurrentPhase(EStoryObjectPhase::PRE_STOP);
+
+	ExecutePhase(GetCurrentPhase());
 }
 
 EStoryObjectPhase AStoryObject::GetCurrentPhase() const
@@ -79,7 +88,7 @@ void AStoryObject::Start()
 
 void AStoryObject::Finish()
 {
-	UE_LOG(LogTemp, Error, TEXT("IT IS FINISHING!"))
+	OnStoryObjectFinished.Broadcast();
 }
 
 void AStoryObject::SetCurrentPhase(const EStoryObjectPhase newPhase)
@@ -110,20 +119,23 @@ void AStoryObject::FetchTicketsForPhase(const EStoryObjectPhase phase)
 	TArray<UActorComponent*> clientComponents = GetComponentsByInterface(UStoryObjectClient::StaticClass());
 
 	// Go through all clients and Get their ticket for the currentPhase
-	for (const UActorComponent* clientComponent : clientComponents)
-		m_remainingTickets.Add(IStoryObjectClient::Execute_GetPhaseTicket(clientComponent, phase));
+	for (UActorComponent* clientComponent : clientComponents)
+	{
+		UDependentStoryObjectClientTicket* ticket = IStoryObjectClient::Execute_GetPhaseTicket(clientComponent, phase);
+
+		if (ticket != nullptr)
+			m_remainingTickets.Add(ticket);
+	}
 }
 
-void AStoryObject::ExecutePhase(const EStoryObjectPhase phase)
+void AStoryObject::ExecutePhase(const EStoryObjectPhase phase, const bool checkTickets)
 {
 	FetchTicketsForPhase(phase);
 	
 	for (const UDependentStoryObjectClientTicket* ticket : m_remainingTickets)
 	{
-		if (ticket->IsTicketFulfilled())
+		if (UActorComponent* client = ticket->GetClient(); !ticket->HasAnyRemainingDependencies() && client != nullptr)
 		{
-			UActorComponent* client = ticket->GetClient();
-
 			FClientDone callback;
 			callback.BindDynamic(this, &AStoryObject::OnClientDone);
 			
@@ -131,7 +143,8 @@ void AStoryObject::ExecutePhase(const EStoryObjectPhase phase)
 		}
 	}
 
-	EvaluateTickets();
+	if (checkTickets)
+		EvaluateTickets();
 }
 
 void AStoryObject::OnClientDone(UActorComponent* client)
@@ -147,26 +160,47 @@ void AStoryObject::EvaluateTickets()
 	const bool areUnfulfilledTicketsLeft = m_remainingTickets.ContainsByPredicate([this](
 		const UDependentStoryObjectClientTicket* ticket)
 	{
-		return !ticket->IsTicketFulfilled() && ticket->ShouldTicketBeFulfilledThisPhase(GetCurrentPhase());
+		return !ticket->IsTicketFulfilled(GetCurrentPhase());
 	});
 
 	// if there are no tickets left unfulfilled go to next regular phase
-	if (!areUnfulfilledTicketsLeft)
+	if (!areUnfulfilledTicketsLeft && !(GetCurrentPhase() == EStoryObjectPhase::FINISHED && !Repeatable))
 		ProceedToNextPhase();
 }
 
 void AStoryObject::ProceedToNextPhase()
 {
-	// remove all tickets except the ones for long term operations
-	m_remainingTickets.RemoveAll([this](
-		const UDependentStoryObjectClientTicket* ticket)
+	// If there are any tickets ...
+	if (m_remainingTickets.Num() > 0)
 	{
-		return ticket->ShouldTicketBeFulfilledThisPhase(GetCurrentPhase());
-	});
+		// ... remove all except the ones for long term operations
+		m_remainingTickets.RemoveAll([this](
+			const UDependentStoryObjectClientTicket* ticket)
+		{
+			return ticket->ShouldTicketBeFulfilledThisPhase(GetCurrentPhase());
+		});
+	}
+
+	const EStoryObjectPhase currentPhase = AdvancePhase();
+
+	if (currentPhase == EStoryObjectPhase::FINISHED)
+	{
+		ExecutePhase(currentPhase, false);
+		Finish();
+		return;
+	}
+
+	ExecutePhase(currentPhase);
+}
+
+EStoryObjectPhase AStoryObject::AdvancePhase()
+{
+	if (GetCurrentPhase() == EStoryObjectPhase::FINISHED && !Repeatable)
+		return GetCurrentPhase();
 	
 	SetCurrentPhase(m_phaseOrder[GetCurrentPhase()]);
 
-	ExecutePhase(GetCurrentPhase());
+	return GetCurrentPhase();
 }
 
 

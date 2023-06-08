@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "WDG_FadeScreen.h"
 #include "Engine/GameInstance.h"
 #include "StoryObject/StoryDirector.h"
 #include "MyCustomGameInstance.generated.h"
@@ -18,4 +19,7 @@ class STORYOBJECTEXAMPLE_API UMyCustomGameInstance : public UGameInstance
 public:
 	UPROPERTY(BlueprintReadOnly, VisibleAnywhere)
 	AStoryDirector* StoryDirector;
+
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
+	UWDG_FadeScreen* FadeScreen;
 };
