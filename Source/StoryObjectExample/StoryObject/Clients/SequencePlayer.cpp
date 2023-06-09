@@ -15,22 +15,9 @@ USequencePlayer::USequencePlayer()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-UDependentStoryObjectClientTicket* USequencePlayer::GetPhaseTicket_Implementation(EStoryObjectPhase phase)
-{
-	if (phase != EStoryObjectPhase::RUNNING)
-		return nullptr;
-	
-	CREATE_TICKET()
-
-	ASSIGN_SAME_PHASE_NO_DEP(phase);
-	
-	return ticket;
-}
-
-void USequencePlayer::Execute_Implementation(EStoryObjectPhase currentPhase, const FClientDone& phaseCallback)
+FStoryObjectClientPhaseTicketInfo USequencePlayer::PlaySequence()
 {
 	m_timerCallbackWasCalled = false;
-	m_ownerCallback = phaseCallback;
 
 	const UScreenFadingClient* screenFader = Cast<UScreenFadingClient>(GetOwner()->GetComponentByClass(UScreenFadingClient::StaticClass()));
 	float callbackTimeDeduction = 0.0f;
@@ -47,22 +34,22 @@ void USequencePlayer::Execute_Implementation(EStoryObjectPhase currentPhase, con
 	GetOwner()->GetWorldTimerManager().SetTimer(m_handle, callback, callbackTime, false);
 
 	Sequence->GetSequencePlayer()->Play();
+
+	return {};
 }
 
-bool USequencePlayer::IsClientDone_Implementation(const EStoryObjectPhase currentPhase)
+void USequencePlayer::BeginPlay()
 {
-	if (currentPhase != EStoryObjectPhase::RUNNING)
-		return true;
-	
-	return m_timerCallbackWasCalled;
+	Super::BeginPlay();
+
+	DECLARE_PHASE_IMPLEMENTATION(RUNNING, &USequencePlayer::PlaySequence)
 }
 
 void USequencePlayer::OnCloseToSequenceEnd()
 {
 	m_timerCallbackWasCalled = true;
 	
-	if (m_ownerCallback.IsBound())
-		m_ownerCallback.Execute(this);
+	NotifyTaskIsDone();
 }
 
 

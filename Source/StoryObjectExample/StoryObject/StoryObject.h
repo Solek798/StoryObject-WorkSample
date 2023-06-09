@@ -4,26 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "StoryObjectClientPhaseTicket.h"
 #include "StoryObject.generated.h"
 
+class UStoryObjectClientPhaseTicket;
 class AStoryObjectTrigger;
 class UDependentStoryObjectClientTicket;
 
-
-UENUM(BlueprintType)
-enum class EStoryObjectPhase
-{
-	IDLE,
-	QUEUED,
-	PRE_START,
-	STARTING,
-	RUNNING,
-	PRE_STOP,
-	STOPPING,
-	PRE_FINISH,
-	FINISHING,
-	FINISHED
-};
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPhaseChanged, EStoryObjectPhase, newPhase);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FStoryObjectFinished);
@@ -51,7 +38,7 @@ protected:
 	TArray<AStoryObjectTrigger*> m_triggerTokens;
 
 	UPROPERTY(VisibleAnywhere)
-	TArray<UDependentStoryObjectClientTicket*> m_remainingTickets;
+	TMap<EStoryObjectPhase, FStoryObjectClientPhaseTicketCollection> m_remainingTickets;
 
 	TMap<EStoryObjectPhase, EStoryObjectPhase> m_phaseOrder;
 	
@@ -87,16 +74,16 @@ protected:
 
 	void EvaluateTriggerState();
 
-	void FetchTicketsForPhase(EStoryObjectPhase phase);
-
 	UFUNCTION(BlueprintCallable)
-	void ExecutePhase(EStoryObjectPhase phase, bool checkTickets = true);
+	void ExecutePhase(EStoryObjectPhase phase);
+	void ExecutePhaseOnClient(EStoryObjectPhase phase, UActorComponent* client);
 
 	UFUNCTION()
-	void OnClientDone(UActorComponent* client);
-
-	void EvaluateTickets();
+	void OnClientFinishedPhase(UStoryObjectClientPhaseTicket* clientTicket);
+	UFUNCTION()
+	void OnClientDependenciesFulfilled(UStoryObjectClientPhaseTicket* clientTicket);
 	
-	void ProceedToNextPhase();
-	EStoryObjectPhase AdvancePhase();
+	void AdvancePhase();
+
+	void CheckIfObjectIsReadyToAdvancePhase();
 };

@@ -3,15 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/ActorComponent.h"
-#include "StoryObjectExample/StoryObject/StoryObjectClient.h"
 #include "LevelSequenceActor.h"
+#include "StoryObjectExample/StoryObject/StoryObjectComponent.h"
 #include "SequencePlayer.generated.h"
 
 
 
 UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class STORYOBJECTEXAMPLE_API USequencePlayer : public UActorComponent, public IStoryObjectClient
+class STORYOBJECTEXAMPLE_API USequencePlayer : public UStoryObjectComponent
 {
 	GENERATED_BODY()
 
@@ -22,19 +21,17 @@ public:
 protected:
 	FTimerHandle m_handle;
 
-	UPROPERTY()
-	FClientDone m_ownerCallback;
-
 	bool m_timerCallbackWasCalled;
 
 public:
 	USequencePlayer();
 
-	virtual UDependentStoryObjectClientTicket* GetPhaseTicket_Implementation(EStoryObjectPhase phase) override;
-	virtual void Execute_Implementation(EStoryObjectPhase currentPhase, const FClientDone& phaseCallback) override;
-	virtual bool IsClientDone_Implementation(EStoryObjectPhase currentPhase) override;
+	UFUNCTION()
+	FStoryObjectClientPhaseTicketInfo PlaySequence();
 
 protected:
+	virtual void BeginPlay() override;
+	
 	UFUNCTION()
 	void OnCloseToSequenceEnd();
 };

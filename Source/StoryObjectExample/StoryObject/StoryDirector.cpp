@@ -2,7 +2,6 @@
 
 
 #include "StoryDirector.h"
-
 #include "StoryObjectExample/MyCustomGameInstance.h"
 
 

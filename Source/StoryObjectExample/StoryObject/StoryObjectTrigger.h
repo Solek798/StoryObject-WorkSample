@@ -4,10 +4,10 @@
 
 #include "CoreMinimal.h"
 #include "Engine/TriggerBox.h"
-#include "GameFramework/Actor.h"
 #include "StoryObjectTrigger.generated.h"
 
 class AStoryObject;
+
 UCLASS(Abstract)
 class STORYOBJECTEXAMPLE_API AStoryObjectTrigger : public ATriggerBox
 {

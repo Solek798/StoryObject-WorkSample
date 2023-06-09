@@ -3,8 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "StoryObjectClientPhaseTicket.h"
 #include "UObject/Interface.h"
 #include "StoryObjectClient.generated.h"
+
+class UStoryObjectClientPhaseTicket;
 
 /*
  * Macro's to ease implementing StoryObjectClient code
@@ -32,47 +35,7 @@ if (condition) \
 	ASSIGN_SAME_PHASE_NO_DEP(phase)
 
 
-DECLARE_DYNAMIC_DELEGATE_OneParam(FClientDone, UActorComponent*, client);
-
-UCLASS(BlueprintType)
-class UDependentStoryObjectClientTicket : public UObject
-{
-	GENERATED_BODY()
-
-protected:
-	UPROPERTY()
-	UActorComponent* m_client;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	EStoryObjectPhase m_endPhase;
-
-	UPROPERTY()
-	TArray<UActorComponent*> m_dependencies;
-
-public:
-	UDependentStoryObjectClientTicket();
-	
-	void SetTicketData(UActorComponent* client, EStoryObjectPhase endPhase, TArray<UActorComponent*> dependencies);
-	
-	UFUNCTION(BlueprintCallable)
-	void FulfillDependency(UActorComponent* dependency);
-
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-	bool IsTicketFulfilled(EStoryObjectPhase currentPhase) const;
-
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-	bool HasAnyRemainingDependencies() const;
-
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-	bool ShouldTicketBeFulfilledThisPhase(EStoryObjectPhase currentPhase) const;
-
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-	bool IsValid() const;
-
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-	UActorComponent* GetClient() const;
-};
-
+DECLARE_DYNAMIC_DELEGATE_RetVal(FStoryObjectClientPhaseTicketInfo, FPhaseImplementation);
 
 UINTERFACE(BlueprintType, Blueprintable)
 class UStoryObjectClient : public UInterface
@@ -89,11 +52,5 @@ class STORYOBJECTEXAMPLE_API IStoryObjectClient
 
 public:
 	UFUNCTION(BlueprintNativeEvent)
-	UDependentStoryObjectClientTicket* GetPhaseTicket(EStoryObjectPhase phase);
-
-	UFUNCTION(BlueprintNativeEvent)
-	void Execute(EStoryObjectPhase currentPhase, const FClientDone& phaseCallback);
-
-	UFUNCTION(BlueprintNativeEvent)
-	bool IsClientDone(EStoryObjectPhase currentPhase);
+	UStoryObjectClientPhaseTicket* ExecutePhase(EStoryObjectPhase currentPhase);
 };

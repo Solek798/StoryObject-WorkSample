@@ -1,12 +1,8 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "ScreenFadingClient.h"
 
 #include "StoryObjectExample/MyCustomGameInstance.h"
-#include "StoryObjectExample/WDG_FadeScreen.h"
-#include "StoryObjectExample/StoryObject/StoryObject.h"
-
 
 UScreenFadingClient::UScreenFadingClient()
 	: m_isInFadingOperation(false)
@@ -14,60 +10,76 @@ UScreenFadingClient::UScreenFadingClient()
 	PrimaryComponentTick.bCanEverTick = false;
 }
 
-UDependentStoryObjectClientTicket* UScreenFadingClient::GetPhaseTicket_Implementation(const EStoryObjectPhase phase)
+void UScreenFadingClient::BeginPlay()
 {
-	CHECK_PHASE_VALID(phase, nullptr)
-	
-	CREATE_TICKET()
+	Super::BeginPlay();
 
-	ASSIGN_SAME_PHASE_NO_DEP_if(phase, phase == EStoryObjectPhase::PRE_START && FadeOutStart)
-	ASSIGN_SAME_PHASE_NO_DEP_if(phase, phase == EStoryObjectPhase::RUNNING && FadeInStart)
-	ASSIGN_SAME_PHASE_NO_DEP_if(phase, phase == EStoryObjectPhase::PRE_STOP && FadeOutStop)
-	ASSIGN_SAME_PHASE_NO_DEP_if(phase, phase == EStoryObjectPhase::PRE_FINISH && FadeOutFinish)
-	ASSIGN_SAME_PHASE_NO_DEP_if(phase, phase == EStoryObjectPhase::FINISHED && FadeInFinish)
-	
-	return ticket;
+	DECLARE_PHASE_IMPLEMENTATION(PRE_START, &UScreenFadingClient::OnFadeOutStart)
+	DECLARE_PHASE_IMPLEMENTATION(RUNNING, &UScreenFadingClient::OnFadeInStart)
+	DECLARE_PHASE_IMPLEMENTATION(PRE_FINISH, &UScreenFadingClient::OnFadeOutFinish)
+	DECLARE_PHASE_IMPLEMENTATION(FINISHED, &UScreenFadingClient::OnFadeInFinish)
+	DECLARE_PHASE_IMPLEMENTATION(PRE_STOP, &UScreenFadingClient::OnFadeOutStop)
 }
 
-void UScreenFadingClient::Execute_Implementation(const EStoryObjectPhase currentPhase, const FClientDone& phaseCallback)
+FStoryObjectClientPhaseTicketInfo UScreenFadingClient::OnFadeOutStart()
 {
-	CHECK_PHASE_VALID(currentPhase)
+	if (FadeOutStart)
+		Fade(true);
 
-	m_ownerCallback = phaseCallback;
+	return {};
+}
 
+FStoryObjectClientPhaseTicketInfo UScreenFadingClient::OnFadeInStart()
+{
+	if (FadeInStart)
+		Fade(false);
+
+	return {};
+}
+
+FStoryObjectClientPhaseTicketInfo UScreenFadingClient::OnFadeOutFinish()
+{
+	if (FadeOutFinish)
+		Fade(true);
+	
+	return {};
+}
+
+FStoryObjectClientPhaseTicketInfo UScreenFadingClient::OnFadeInFinish()
+{
+	if (FadeInFinish)
+		Fade(false);
+	
+	return {};
+}
+
+FStoryObjectClientPhaseTicketInfo UScreenFadingClient::OnFadeOutStop()
+{
+	if (FadeOutStop)
+		Fade(true);
+	
+	return {};
+}
+
+void UScreenFadingClient::Fade(const bool toBlack)
+{
 	const UMyCustomGameInstance* gameInstance = GetOwner()->GetGameInstance<UMyCustomGameInstance>();
 	if (gameInstance == nullptr)
 		return;
 
 	m_isInFadingOperation = true;
 
-	const bool fadeToBlack = currentPhase == EStoryObjectPhase::PRE_START || currentPhase == EStoryObjectPhase::PRE_STOP ||
-											 currentPhase == EStoryObjectPhase::PRE_FINISH;
-
 	FFadeComplete fadeCallback;
 	fadeCallback.BindDynamic(this, &UScreenFadingClient::UScreenFadingClient::OnFadeDone);
 	
-	gameInstance->FadeScreen->Fade(fadeToBlack, FadeTime, fadeCallback);
-}
-
-bool UScreenFadingClient::IsClientDone_Implementation(EStoryObjectPhase currentPhase)
-{
-	return !m_isInFadingOperation;
-}
-
-
-void UScreenFadingClient::BeginPlay()
-{
-	Super::BeginPlay();
-	
+	gameInstance->FadeScreen->Fade(toBlack, FadeTime, fadeCallback);
 }
 
 void UScreenFadingClient::OnFadeDone()
 {
 	m_isInFadingOperation = false;
 	
-	if (m_ownerCallback.IsBound())
-		m_ownerCallback.Execute(this);
+	NotifyTaskIsDone();
 }
 
 

@@ -3,14 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Components/ActorComponent.h"
-#include "StoryObjectExample/StoryObject/StoryObject.h"
-#include "StoryObjectExample/StoryObject/StoryObjectClient.h"
+#include "StoryObjectExample/StoryObject/StoryObjectComponent.h"
 #include "ScreenFadingClient.generated.h"
 
 
-UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
-class STORYOBJECTEXAMPLE_API UScreenFadingClient : public UActorComponent, public IStoryObjectClient
+UCLASS()
+class STORYOBJECTEXAMPLE_API UScreenFadingClient : public UStoryObjectComponent
 {
 	GENERATED_BODY()
 
@@ -32,27 +30,29 @@ public:
 	bool FadeOutStop;
 
 protected:
-	UPROPERTY()
-	FClientDone m_ownerCallback;
-	
-	DECLARE_PHASE_RANGE(EStoryObjectPhase::PRE_START,
-		EStoryObjectPhase::RUNNING,
-		EStoryObjectPhase::PRE_STOP,
-		EStoryObjectPhase::PRE_FINISH,
-		EStoryObjectPhase::FINISHED)
-
 	bool m_isInFadingOperation;
 	
 public:
 	UScreenFadingClient();
-
-	virtual UDependentStoryObjectClientTicket* GetPhaseTicket_Implementation(EStoryObjectPhase phase) override;
-	virtual void Execute_Implementation(EStoryObjectPhase currentPhase, const FClientDone& phaseCallback) override;
-	virtual bool IsClientDone_Implementation(EStoryObjectPhase currentPhase) override;
 	
 protected:
 	virtual void BeginPlay() override;
 
+	UFUNCTION()
+	FStoryObjectClientPhaseTicketInfo OnFadeOutStart();
+	UFUNCTION()
+	FStoryObjectClientPhaseTicketInfo OnFadeInStart();
+
+	UFUNCTION()
+	FStoryObjectClientPhaseTicketInfo OnFadeOutFinish();
+	UFUNCTION()
+	FStoryObjectClientPhaseTicketInfo OnFadeInFinish();
+
+	UFUNCTION()
+	FStoryObjectClientPhaseTicketInfo OnFadeOutStop();
+
+	void Fade(bool toBlack);
+	
 	UFUNCTION()
 	void OnFadeDone();
 };

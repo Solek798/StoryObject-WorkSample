@@ -1,14 +1,23 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "StoryObjectClientPhaseTicket.h"
+#include "StoryObjectEnums.h"
 
-#include "StoryObjectExample/StoryObject/StoryObject.h"
 
+FStoryObjectClientPhaseTicketInfo::FStoryObjectClientPhaseTicketInfo()
+	: EndPhase(EStoryObjectPhase::NONE)
+{ }
+
+FStoryObjectClientPhaseTicketInfo::FStoryObjectClientPhaseTicketInfo(const EStoryObjectPhase endPhase,
+                                                                     const TArray<UActorComponent*> dependencies)
+	: EndPhase(endPhase)
+	, Dependencies(dependencies)
+{ }
 
 UStoryObjectClientPhaseTicket::UStoryObjectClientPhaseTicket()
 	: m_client(nullptr)
-	, m_endPhase(EStoryObjectPhase::IDLE)
+	, m_clientFinishedPhase(false)
+	, m_neverHadAnyDependencies(true)
 { }
 
 UActorComponent* UStoryObjectClientPhaseTicket::GetClient() const
@@ -18,20 +27,22 @@ UActorComponent* UStoryObjectClientPhaseTicket::GetClient() const
 
 EStoryObjectPhase UStoryObjectClientPhaseTicket::GetEndPhase() const
 {
-	return m_endPhase;
+	return m_info.EndPhase;
 }
 
 TArray<UActorComponent*> UStoryObjectClientPhaseTicket::GetDependencies() const
 {
-	return m_dependencies;
+	return m_info.Dependencies;
 }
 
-FClientFinishedPhase UStoryObjectClientPhaseTicket::RegisterClient(UActorComponent* client, const EStoryObjectPhase endPhase,
-																   const TArray<UActorComponent*> dependencies)
+bool UStoryObjectClientPhaseTicket::HasClientFinishedPhase() const
+{
+	return m_clientFinishedPhase;
+}
+
+FClientFinishedPhase UStoryObjectClientPhaseTicket::RegisterClient(UActorComponent* client)
 {
 	m_client = client;
-	m_endPhase = endPhase;
-	m_dependencies = dependencies;
 
 	FClientFinishedPhase onClientFinishedPhaseEvent;
 	onClientFinishedPhaseEvent.BindDynamic(this, &UStoryObjectClientPhaseTicket::OnClientFinishedPhase);
@@ -39,16 +50,28 @@ FClientFinishedPhase UStoryObjectClientPhaseTicket::RegisterClient(UActorCompone
 	return onClientFinishedPhaseEvent;
 }
 
+void UStoryObjectClientPhaseTicket::SetTicketInfo(const FStoryObjectClientPhaseTicketInfo info)
+{
+	m_info = info;
+
+	m_neverHadAnyDependencies = m_info.Dependencies.Num() <= 0;
+}
+
 void UStoryObjectClientPhaseTicket::FulfillDependency(UActorComponent* dependency)
 {
-	m_dependencies.Remove(dependency);
+	if (m_neverHadAnyDependencies)
+    		return;
+	
+	m_info.Dependencies.Remove(dependency);
 
-	if (m_dependencies.Num() <= 0 && OnClientDependenciesFulfilledEvent.IsBound())
+	if (m_info.Dependencies.Num() <= 0 && OnClientDependenciesFulfilledEvent.IsBound())
 		OnClientDependenciesFulfilledEvent.Execute(this);
 }
 
 void UStoryObjectClientPhaseTicket::OnClientFinishedPhase()
 {
+	m_clientFinishedPhase = true;
+	
 	if (OnClientFinishedPhaseEvent.IsBound())
 		OnClientFinishedPhaseEvent.Execute(this);
 }

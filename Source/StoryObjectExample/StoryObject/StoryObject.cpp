@@ -3,6 +3,8 @@
 
 #include "StoryObject.h"
 #include "StoryObjectClient.h"
+#include "StoryObjectClientPhaseTicket.h"
+#include "StoryObjectEnums.h"
 #include "StoryObjectExample/MyCustomGameInstance.h"
 
 
@@ -83,7 +85,7 @@ void AStoryObject::BeginPlay()
 
 void AStoryObject::Start()
 {
-	ProceedToNextPhase();
+	AdvancePhase();
 }
 
 void AStoryObject::Finish()
@@ -113,94 +115,74 @@ void AStoryObject::EvaluateTriggerState()
 	}
 }
 
-void AStoryObject::FetchTicketsForPhase(const EStoryObjectPhase phase)
+
+void AStoryObject::ExecutePhase(const EStoryObjectPhase phase)
 {
 	// Get all ClientComponents of this StoryObject
 	TArray<UActorComponent*> clientComponents = GetComponentsByInterface(UStoryObjectClient::StaticClass());
 
-	// Go through all clients and Get their ticket for the currentPhase
-	for (UActorComponent* clientComponent : clientComponents)
-	{
-		UDependentStoryObjectClientTicket* ticket = IStoryObjectClient::Execute_GetPhaseTicket(clientComponent, phase);
+	for (UActorComponent* client : clientComponents)
+		ExecutePhaseOnClient(phase, client);
 
-		if (ticket != nullptr)
-			m_remainingTickets.Add(ticket);
+	CheckIfObjectIsReadyToAdvancePhase();
+}
+
+void AStoryObject::ExecutePhaseOnClient(const EStoryObjectPhase phase, UActorComponent* client)
+{
+	UStoryObjectClientPhaseTicket* ticket = IStoryObjectClient::Execute_ExecutePhase(client, phase);
+
+	if (ticket != nullptr && !ticket->HasClientFinishedPhase())
+	{
+		ticket->OnClientFinishedPhaseEvent.BindDynamic(this, &AStoryObject::OnClientFinishedPhase);
+		ticket->OnClientDependenciesFulfilledEvent.BindDynamic(this, &AStoryObject::OnClientDependenciesFulfilled);
+
+		m_remainingTickets.FindOrAdd(ticket->GetEndPhase()).Tickets.Add(ticket);
 	}
 }
 
-void AStoryObject::ExecutePhase(const EStoryObjectPhase phase, const bool checkTickets)
+void AStoryObject::OnClientFinishedPhase(UStoryObjectClientPhaseTicket* clientTicket)
 {
-	FetchTicketsForPhase(phase);
+	const EStoryObjectPhase currentPhase = GetCurrentPhase();
+	FStoryObjectClientPhaseTicketCollection test = m_remainingTickets.FindChecked(currentPhase);
+	TArray<UStoryObjectClientPhaseTicket*> test2 = test.Tickets;
 	
-	for (const UDependentStoryObjectClientTicket* ticket : m_remainingTickets)
-	{
-		if (UActorComponent* client = ticket->GetClient(); !ticket->HasAnyRemainingDependencies() && client != nullptr)
-		{
-			FClientDone callback;
-			callback.BindDynamic(this, &AStoryObject::OnClientDone);
-			
-			IStoryObjectClient::Execute_Execute(client, phase, callback);
-		}
-	}
+	for (UStoryObjectClientPhaseTicket* ticket : test2)
+		ticket->FulfillDependency(clientTicket->GetClient());
 
-	if (checkTickets)
-		EvaluateTickets();
+	m_remainingTickets[currentPhase].Tickets.Remove(clientTicket);
+
+	CheckIfObjectIsReadyToAdvancePhase();
 }
 
-void AStoryObject::OnClientDone(UActorComponent* client)
+void AStoryObject::OnClientDependenciesFulfilled(UStoryObjectClientPhaseTicket* clientTicket)
 {
-	for (UDependentStoryObjectClientTicket* ticket : m_remainingTickets)
-		ticket->FulfillDependency(client);
-
-	EvaluateTickets();
+	ExecutePhaseOnClient(GetCurrentPhase(), clientTicket->GetClient());
 }
 
-void AStoryObject::EvaluateTickets()
+void AStoryObject::AdvancePhase()
 {
-	const bool areUnfulfilledTicketsLeft = m_remainingTickets.ContainsByPredicate([this](
-		const UDependentStoryObjectClientTicket* ticket)
+	const EStoryObjectPhase oldPhase = GetCurrentPhase();
+	
+	if (oldPhase == EStoryObjectPhase::FINISHED && !Repeatable)
 	{
-		return !ticket->IsTicketFulfilled(GetCurrentPhase());
-	});
-
-	// if there are no tickets left unfulfilled go to next regular phase
-	if (!areUnfulfilledTicketsLeft && !(GetCurrentPhase() == EStoryObjectPhase::FINISHED && !Repeatable))
-		ProceedToNextPhase();
-}
-
-void AStoryObject::ProceedToNextPhase()
-{
-	// If there are any tickets ...
-	if (m_remainingTickets.Num() > 0)
-	{
-		// ... remove all except the ones for long term operations
-		m_remainingTickets.RemoveAll([this](
-			const UDependentStoryObjectClientTicket* ticket)
-		{
-			return ticket->ShouldTicketBeFulfilledThisPhase(GetCurrentPhase());
-		});
-	}
-
-	const EStoryObjectPhase currentPhase = AdvancePhase();
-
-	if (currentPhase == EStoryObjectPhase::FINISHED)
-	{
-		ExecutePhase(currentPhase, false);
 		Finish();
-		return;
 	}
 
-	ExecutePhase(currentPhase);
+	const EStoryObjectPhase newPhase = m_phaseOrder[oldPhase];
+	SetCurrentPhase(newPhase);
+
+	if (newPhase == EStoryObjectPhase::QUEUED)
+		return;
+
+	ExecutePhase(newPhase);
 }
 
-EStoryObjectPhase AStoryObject::AdvancePhase()
+void AStoryObject::CheckIfObjectIsReadyToAdvancePhase()
 {
-	if (GetCurrentPhase() == EStoryObjectPhase::FINISHED && !Repeatable)
-		return GetCurrentPhase();
+	const EStoryObjectPhase currentPhase = GetCurrentPhase();
 	
-	SetCurrentPhase(m_phaseOrder[GetCurrentPhase()]);
-
-	return GetCurrentPhase();
+	if (!m_remainingTickets.Contains(currentPhase) || m_remainingTickets[currentPhase].Tickets.Num() <= 0)
+		AdvancePhase();
 }
 
 
