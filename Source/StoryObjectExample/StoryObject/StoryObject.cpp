@@ -115,19 +115,37 @@ void AStoryObject::EvaluateTriggerState()
 	}
 }
 
+TArray<UObject*> AStoryObject::FetchAllClients() const
+{
+	TArray<UObject*> retVal;
+
+	TArray<UActorComponent*> clientComponents = GetComponentsByInterface(UStoryObjectClient::StaticClass());
+	for (UActorComponent* client : clientComponents)
+		retVal.Add(client);
+
+	TArray<AActor*> attachedActors;
+	GetAttachedActors(attachedActors);
+	for (AActor* attachedActor : attachedActors)
+	{
+		if (attachedActor->Implements<UStoryObjectClient>())
+			retVal.Add(attachedActor);
+	}
+
+	return retVal;
+}
+
 
 void AStoryObject::ExecutePhase(const EStoryObjectPhase phase)
 {
-	// Get all ClientComponents of this StoryObject
-	TArray<UActorComponent*> clientComponents = GetComponentsByInterface(UStoryObjectClient::StaticClass());
+	TArray<UObject*> clients = FetchAllClients();
 
-	for (UActorComponent* client : clientComponents)
+	for (UObject* client : clients)
 		ExecutePhaseOnClient(phase, client);
 
 	CheckIfObjectIsReadyToAdvancePhase();
 }
 
-void AStoryObject::ExecutePhaseOnClient(const EStoryObjectPhase phase, UActorComponent* client)
+void AStoryObject::ExecutePhaseOnClient(const EStoryObjectPhase phase, UObject* client)
 {
 	UStoryObjectClientPhaseTicket* ticket = IStoryObjectClient::Execute_ExecutePhase(client, phase);
 
@@ -163,15 +181,19 @@ void AStoryObject::AdvancePhase()
 {
 	const EStoryObjectPhase oldPhase = GetCurrentPhase();
 	
-	if (oldPhase == EStoryObjectPhase::FINISHED && !Repeatable)
+	if (oldPhase == EStoryObjectPhase::FINISHED)
 	{
 		Finish();
+
+		if (!Repeatable)
+			return;
 	}
 
 	const EStoryObjectPhase newPhase = m_phaseOrder[oldPhase];
 	SetCurrentPhase(newPhase);
 
-	if (newPhase == EStoryObjectPhase::QUEUED)
+	// if Object is 'back to waiting state' make sure it's not trying to further progress the phase-chain
+	if (newPhase == EStoryObjectPhase::IDLE || newPhase == EStoryObjectPhase::QUEUED)
 		return;
 
 	ExecutePhase(newPhase);

@@ -74,9 +74,11 @@ protected:
 
 	void EvaluateTriggerState();
 
+	TArray<UObject*> FetchAllClients() const;
+
 	UFUNCTION(BlueprintCallable)
 	void ExecutePhase(EStoryObjectPhase phase);
-	void ExecutePhaseOnClient(EStoryObjectPhase phase, UActorComponent* client);
+	void ExecutePhaseOnClient(EStoryObjectPhase phase, UObject* client);
 
 	UFUNCTION()
 	void OnClientFinishedPhase(UStoryObjectClientPhaseTicket* clientTicket);

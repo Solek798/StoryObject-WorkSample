@@ -35,7 +35,7 @@ struct FStoryObjectClientPhaseTicketInfo
 	EStoryObjectPhase EndPhase;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	TArray<UActorComponent*> Dependencies;
+	TArray<UObject*> Dependencies;
 };
 
 /**
@@ -55,7 +55,7 @@ public:
 	
 protected:
 	UPROPERTY()
-	UActorComponent* m_client;
+	UObject* m_client;
 
 	UPROPERTY()
 	FStoryObjectClientPhaseTicketInfo m_info;
@@ -67,22 +67,22 @@ public:
 	UStoryObjectClientPhaseTicket();
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	UActorComponent* GetClient() const;
+	UObject* GetClient() const;
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	EStoryObjectPhase GetEndPhase() const;
 	UFUNCTION(BlueprintCallable, BlueprintPure)
-	TArray<UActorComponent*> GetDependencies() const;
+	TArray<UObject*> GetDependencies() const;
 
 	UFUNCTION(BlueprintCallable, BlueprintPure)
 	bool HasClientFinishedPhase() const;
 
 	UFUNCTION(BlueprintCallable)
-	FClientFinishedPhase RegisterClient(UActorComponent* client);
+	FClientFinishedPhase RegisterClient(UObject* client);
 	UFUNCTION(BlueprintCallable)
 	void SetTicketInfo(FStoryObjectClientPhaseTicketInfo info);
 	
 	UFUNCTION(BlueprintCallable)
-	void FulfillDependency(UActorComponent* dependency);
+	void FulfillDependency(UObject* dependency);
 
 protected:
 	UFUNCTION()

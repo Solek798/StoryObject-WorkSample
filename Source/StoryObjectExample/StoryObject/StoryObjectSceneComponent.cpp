@@ -4,17 +4,10 @@
 #include "StoryObjectSceneComponent.h"
 
 
+GENERATE_CLIENT_IMPLEMENTATION_BODY(UStoryObjectSceneComponent)
+
 UStoryObjectSceneComponent::UStoryObjectSceneComponent()
 {
 	PrimaryComponentTick.bCanEverTick = false;
 }
-
-
-void UStoryObjectSceneComponent::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
-
-
 

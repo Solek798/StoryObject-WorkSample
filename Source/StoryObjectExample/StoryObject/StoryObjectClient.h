@@ -13,26 +13,46 @@ class UStoryObjectClientPhaseTicket;
  * Macro's to ease implementing StoryObjectClient code
  */
 
-#define DECLARE_PHASE_RANGE(...) \
-const TSet<EStoryObjectPhase> m_validPhases {__VA_ARGS__};\
-UFUNCTION(BlueprintCallable, BlueprintPure)\
-TSet<EStoryObjectPhase> GetValidPhases() const { return m_validPhases; }
+#define DECLARE_PHASE_IMPLEMENTATION(phase, function)\
+FPhaseImplementation phaseImplementation##phase;\
+phaseImplementation##phase.BindDynamic(this, function);\
+m_phaseImplementations.Add(EStoryObjectPhase::phase, phaseImplementation##phase);
 
-#define IS_PHASE_VALID(phase) m_validPhases.Contains(phase)
+#define GENERATE_CLIENT_DECLARATION_BODY() \
+protected:\
+UPROPERTY(BlueprintReadOnly, VisibleAnywhere)\
+TMap<EStoryObjectPhase, FPhaseImplementation> m_phaseImplementations;\
+UPROPERTY()\
+FClientFinishedPhase m_onClientFinishedPhaseEvent;\
+public:\
+virtual UStoryObjectClientPhaseTicket* ExecutePhase_Implementation(EStoryObjectPhase currentPhase) override;\
+UFUNCTION(BlueprintCallable)\
+void NotifyTaskIsDone() const;
 
-#define CHECK_PHASE_VALID(phase, ...) \
-if (!IS_PHASE_VALID(phase)) \
-	return __VA_ARGS__;
-
-#define CREATE_TICKET() \
-UDependentStoryObjectClientTicket* ticket = NewObject<UDependentStoryObjectClientTicket>();
-
-#define ASSIGN_SAME_PHASE_NO_DEP(phase) \
-ticket->SetTicketData(this, phase, {});
-
-#define ASSIGN_SAME_PHASE_NO_DEP_if(phase, condition) \
-if (condition) \
-	ASSIGN_SAME_PHASE_NO_DEP(phase)
+#define GENERATE_CLIENT_IMPLEMENTATION_BODY(class) \
+UStoryObjectClientPhaseTicket* class::ExecutePhase_Implementation(const EStoryObjectPhase currentPhase)\
+{\
+	if (!m_phaseImplementations.Contains(currentPhase))\
+		return nullptr;\
+	UStoryObjectClientPhaseTicket* ticket = NewObject<UStoryObjectClientPhaseTicket>();\
+	FStoryObjectClientPhaseTicketInfo info {currentPhase, {}};\
+	m_onClientFinishedPhaseEvent = ticket->RegisterClient(this);\
+	if (m_phaseImplementations[currentPhase].IsBound())\
+	{\
+		const FStoryObjectClientPhaseTicketInfo implementationInfo = m_phaseImplementations[currentPhase].Execute();\
+		if (implementationInfo.EndPhase != EStoryObjectPhase::NONE)\
+			info = implementationInfo;\
+		else\
+			info.Dependencies = implementationInfo.Dependencies;\
+	}\
+	ticket->SetTicketInfo(info);\
+	return ticket;\
+}\
+void class::NotifyTaskIsDone() const\
+{\
+	if (m_onClientFinishedPhaseEvent.IsBound())\
+		m_onClientFinishedPhaseEvent.Execute();\
+}
 
 
 DECLARE_DYNAMIC_DELEGATE_RetVal(FStoryObjectClientPhaseTicketInfo, FPhaseImplementation);

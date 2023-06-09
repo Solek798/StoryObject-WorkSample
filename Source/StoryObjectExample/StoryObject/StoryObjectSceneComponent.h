@@ -7,14 +7,12 @@
 #include "StoryObjectSceneComponent.generated.h"
 
 
-UCLASS(Abstract, meta=(BlueprintSpawnableComponent))
+UCLASS(Abstract, Blueprintable, BlueprintType)
 class STORYOBJECTEXAMPLE_API UStoryObjectSceneComponent : public USceneComponent, public IStoryObjectClient
 {
 	GENERATED_BODY()
 
-public:
+	GENERATE_CLIENT_DECLARATION_BODY()
+	
 	UStoryObjectSceneComponent();
-
-protected:
-	virtual void BeginPlay() override;
 };

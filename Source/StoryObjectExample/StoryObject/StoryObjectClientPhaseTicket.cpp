@@ -20,7 +20,7 @@ UStoryObjectClientPhaseTicket::UStoryObjectClientPhaseTicket()
 	, m_neverHadAnyDependencies(true)
 { }
 
-UActorComponent* UStoryObjectClientPhaseTicket::GetClient() const
+UObject* UStoryObjectClientPhaseTicket::GetClient() const
 {
 	return m_client;
 }
@@ -30,7 +30,7 @@ EStoryObjectPhase UStoryObjectClientPhaseTicket::GetEndPhase() const
 	return m_info.EndPhase;
 }
 
-TArray<UActorComponent*> UStoryObjectClientPhaseTicket::GetDependencies() const
+TArray<UObject*> UStoryObjectClientPhaseTicket::GetDependencies() const
 {
 	return m_info.Dependencies;
 }
@@ -40,7 +40,7 @@ bool UStoryObjectClientPhaseTicket::HasClientFinishedPhase() const
 	return m_clientFinishedPhase;
 }
 
-FClientFinishedPhase UStoryObjectClientPhaseTicket::RegisterClient(UActorComponent* client)
+FClientFinishedPhase UStoryObjectClientPhaseTicket::RegisterClient(UObject* client)
 {
 	m_client = client;
 
@@ -57,10 +57,10 @@ void UStoryObjectClientPhaseTicket::SetTicketInfo(const FStoryObjectClientPhaseT
 	m_neverHadAnyDependencies = m_info.Dependencies.Num() <= 0;
 }
 
-void UStoryObjectClientPhaseTicket::FulfillDependency(UActorComponent* dependency)
+void UStoryObjectClientPhaseTicket::FulfillDependency(UObject* dependency)
 {
 	if (m_neverHadAnyDependencies)
-    		return;
+    	return;
 	
 	m_info.Dependencies.Remove(dependency);
 
