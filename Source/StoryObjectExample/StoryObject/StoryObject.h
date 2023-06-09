@@ -29,6 +29,9 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	bool Repeatable;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	AStoryObject* FollowUpObject;
 	
 protected:
 	UPROPERTY(VisibleAnywhere)

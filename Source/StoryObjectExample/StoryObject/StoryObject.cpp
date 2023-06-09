@@ -91,6 +91,9 @@ void AStoryObject::Start()
 void AStoryObject::Finish()
 {
 	OnStoryObjectFinished.Broadcast();
+
+	if (FollowUpObject != nullptr)
+		FollowUpObject->Activate();
 }
 
 void AStoryObject::SetCurrentPhase(const EStoryObjectPhase newPhase)
