@@ -15,6 +15,9 @@ class UDependentStoryObjectClientTicket;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPhaseChanged, EStoryObjectPhase, newPhase);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FStoryObjectFinished);
 
+/*
+ * 
+ */
 UCLASS(Abstract)
 class STORYOBJECTEXAMPLE_API AStoryObject : public AActor
 {
@@ -22,15 +25,23 @@ class STORYOBJECTEXAMPLE_API AStoryObject : public AActor
 
 public:
 	UPROPERTY(BlueprintAssignable)
+	// calls every time object changes it's phase before executing it
 	FPhaseChanged OnPhaseChanged;
 	
 	UPROPERTY(BlueprintAssignable)
+	// calls once object reaches FINISHED phase before executing it
 	FStoryObjectFinished OnStoryObjectFinished;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	// if set to true object will return to IDLE state after all FINISHED operations are done and allows to be re-triggered
 	bool Repeatable;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	// if set to true object will be stopped when player leaves trigger
+	bool IsSpatialObject;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
+	// Object that gets activated when this object reaches FINISHED phase
 	AStoryObject* FollowUpObject;
 	
 protected:
@@ -41,7 +52,8 @@ protected:
 	TArray<AStoryObjectTrigger*> m_triggerTokens;
 
 	UPROPERTY(VisibleAnywhere)
-	TMap<EStoryObjectPhase, FStoryObjectClientPhaseTicketCollection> m_remainingTickets;
+	// map where all tickets get sorted by end-phase
+	TMap<EStoryObjectPhase, FStoryObjectClientPhaseTicketCollection> m_ticketRegister;
 
 	TMap<EStoryObjectPhase, EStoryObjectPhase> m_phaseOrder;
 	
@@ -61,13 +73,8 @@ public:
 	void AddTriggerToken(AStoryObjectTrigger* trigger);
 	UFUNCTION(BlueprintCallable)
 	void RemoveTriggerToken(AStoryObjectTrigger* trigger);
-
-	UFUNCTION(BlueprintCallable, BlueprintPure)
-	bool IsArealStoryObject() const;
 	
 protected:
-	virtual void BeginPlay() override;
-
 	UFUNCTION()
 	void Start();
 
@@ -77,6 +84,7 @@ protected:
 
 	void EvaluateTriggerState();
 
+	// filters all components and attached actors
 	TArray<UObject*> FetchAllClients() const;
 
 	UFUNCTION(BlueprintCallable)

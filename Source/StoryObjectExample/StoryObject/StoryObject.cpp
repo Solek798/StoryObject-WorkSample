@@ -14,7 +14,6 @@ AStoryObject::AStoryObject()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	// TODO(FK): Maybe make that const somehow?
 	m_phaseOrder = {
 		{EStoryObjectPhase::IDLE, EStoryObjectPhase::QUEUED},
 		{EStoryObjectPhase::QUEUED, EStoryObjectPhase::PRE_START},
@@ -31,13 +30,16 @@ AStoryObject::AStoryObject()
 
 void AStoryObject::Activate()
 {
+	// Get StoryDirector 
 	const UMyCustomGameInstance* gameInstance = GetGameInstance<UMyCustomGameInstance>();
 	if (gameInstance == nullptr || gameInstance->StoryDirector == nullptr)
 		return;
-	
+
+	// prepare callback that the StoryDirector uses to give this object greenlight
 	FStoryObjectStartCall startCall;
 	startCall.BindDynamic(this, &AStoryObject::Start);
 
+	// IDLE -> QUEUED
 	AdvancePhase();
 
 	gameInstance->StoryDirector->EnqueueStoryObject(startCall);
@@ -45,11 +47,14 @@ void AStoryObject::Activate()
 
 void AStoryObject::Stop()
 {
+	// only stop if object is running
 	if (GetCurrentPhase() != EStoryObjectPhase::RUNNING)
 		return;
-	
+
+	// break phase chain by setting PRE_STOP manually ...
 	SetCurrentPhase(EStoryObjectPhase::PRE_STOP);
 
+	// ... and execute it
 	ExecutePhase(GetCurrentPhase());
 }
 
@@ -72,19 +77,9 @@ void AStoryObject::RemoveTriggerToken(AStoryObjectTrigger* trigger)
 	EvaluateTriggerState();
 }
 
-bool AStoryObject::IsArealStoryObject() const
-{
-	// TODO(FK): NOT IMPLEMENTED!
-	return false;
-}
-
-void AStoryObject::BeginPlay()
-{
-	Super::BeginPlay();
-}
-
 void AStoryObject::Start()
 {
+	// QUEUED -> PRE_START
 	AdvancePhase();
 }
 
@@ -110,8 +105,8 @@ void AStoryObject::EvaluateTriggerState()
 		return;
 	}
 
-	// if this is an 'Areal-StoryObject', there is no trigger and the object is running stop it.
-	if (IsArealStoryObject() && m_triggerTokens.Num() <= 0 && GetCurrentPhase() != EStoryObjectPhase::IDLE)
+	// if this is an 'Spatial-StoryObject', there is no trigger and the object is running stop it.
+	if (IsSpatialObject && m_triggerTokens.Num() <= 0 && GetCurrentPhase() != EStoryObjectPhase::IDLE)
 	{
 		Stop();
 		return;
@@ -157,20 +152,20 @@ void AStoryObject::ExecutePhaseOnClient(const EStoryObjectPhase phase, UObject* 
 		ticket->OnClientFinishedPhaseEvent.BindDynamic(this, &AStoryObject::OnClientFinishedPhase);
 		ticket->OnClientDependenciesFulfilledEvent.BindDynamic(this, &AStoryObject::OnClientDependenciesFulfilled);
 
-		m_remainingTickets.FindOrAdd(ticket->GetEndPhase()).Tickets.Add(ticket);
+		m_ticketRegister.FindOrAdd(ticket->GetEndPhase()).Tickets.Add(ticket);
 	}
 }
 
 void AStoryObject::OnClientFinishedPhase(UStoryObjectClientPhaseTicket* clientTicket)
 {
 	const EStoryObjectPhase currentPhase = GetCurrentPhase();
-	FStoryObjectClientPhaseTicketCollection test = m_remainingTickets.FindChecked(currentPhase);
+	FStoryObjectClientPhaseTicketCollection test = m_ticketRegister.FindChecked(currentPhase);
 	TArray<UStoryObjectClientPhaseTicket*> test2 = test.Tickets;
 	
 	for (UStoryObjectClientPhaseTicket* ticket : test2)
 		ticket->FulfillDependency(clientTicket->GetClient());
 
-	m_remainingTickets[currentPhase].Tickets.Remove(clientTicket);
+	m_ticketRegister[currentPhase].Tickets.Remove(clientTicket);
 
 	CheckIfObjectIsReadyToAdvancePhase();
 }
@@ -195,6 +190,8 @@ void AStoryObject::AdvancePhase()
 	const EStoryObjectPhase newPhase = m_phaseOrder[oldPhase];
 	SetCurrentPhase(newPhase);
 
+	OnPhaseChanged.Broadcast(newPhase);
+
 	// if Object is 'back to waiting state' make sure it's not trying to further progress the phase-chain
 	if (newPhase == EStoryObjectPhase::IDLE || newPhase == EStoryObjectPhase::QUEUED)
 		return;
@@ -206,7 +203,7 @@ void AStoryObject::CheckIfObjectIsReadyToAdvancePhase()
 {
 	const EStoryObjectPhase currentPhase = GetCurrentPhase();
 	
-	if (!m_remainingTickets.Contains(currentPhase) || m_remainingTickets[currentPhase].Tickets.Num() <= 0)
+	if (!m_ticketRegister.Contains(currentPhase) || m_ticketRegister[currentPhase].Tickets.Num() <= 0)
 		AdvancePhase();
 }
 

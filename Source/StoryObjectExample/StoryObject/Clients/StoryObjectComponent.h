@@ -3,9 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "StoryObjectClient.h"
-#include "StoryObjectClientPhaseTicket.h"
 #include "Components/ActorComponent.h"
+#include "StoryObjectExample/StoryObject/StoryObjectClient.h"
 #include "StoryObjectComponent.generated.h"
 
 

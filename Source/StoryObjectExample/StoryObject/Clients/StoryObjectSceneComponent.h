@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "StoryObjectClient.h"
+#include "StoryObjectExample/StoryObject/StoryObjectClient.h"
 #include "StoryObjectSceneComponent.generated.h"
 
 

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "StoryObjectExample/StoryObject/StoryObjectComponent.h"
+#include "StoryObjectComponent.h"
 #include "ScreenFadingClient.generated.h"
 
 

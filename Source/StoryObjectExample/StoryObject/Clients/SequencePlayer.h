@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "LevelSequenceActor.h"
-#include "StoryObjectExample/StoryObject/StoryObjectComponent.h"
+#include "StoryObjectComponent.h"
 #include "SequencePlayer.generated.h"
 
 

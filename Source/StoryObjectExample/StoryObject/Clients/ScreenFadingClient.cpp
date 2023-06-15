@@ -1,8 +1,8 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "ScreenFadingClient.h"
-
 #include "StoryObjectExample/MyCustomGameInstance.h"
+
 
 UScreenFadingClient::UScreenFadingClient()
 	: m_isInFadingOperation(false)
@@ -24,41 +24,56 @@ void UScreenFadingClient::BeginPlay()
 FStoryObjectClientPhaseTicketInfo UScreenFadingClient::OnFadeOutStart()
 {
 	if (FadeOutStart)
+	{
 		Fade(true);
+		return {EStoryObjectPhase::PRE_START, {}};
+	}
 
-	return {};
+	return INVALID_INFO;
 }
 
 FStoryObjectClientPhaseTicketInfo UScreenFadingClient::OnFadeInStart()
 {
 	if (FadeInStart)
+	{
 		Fade(false);
+		return {EStoryObjectPhase::RUNNING, {}};
+	}
 
-	return {};
+	return INVALID_INFO;
 }
 
 FStoryObjectClientPhaseTicketInfo UScreenFadingClient::OnFadeOutFinish()
 {
 	if (FadeOutFinish)
+	{
 		Fade(true);
+		return {EStoryObjectPhase::PRE_FINISH, {}};
+	}
 	
-	return {};
+	return INVALID_INFO;
 }
 
 FStoryObjectClientPhaseTicketInfo UScreenFadingClient::OnFadeInFinish()
 {
 	if (FadeInFinish)
+	{
 		Fade(false);
+		return {EStoryObjectPhase::FINISHED, {}};
+	}
 	
-	return {};
+	return INVALID_INFO;
 }
 
 FStoryObjectClientPhaseTicketInfo UScreenFadingClient::OnFadeOutStop()
 {
 	if (FadeOutStop)
+	{
 		Fade(true);
+		return {EStoryObjectPhase::PRE_STOP, {}};
+	}
 	
-	return {};
+	return INVALID_INFO;
 }
 
 void UScreenFadingClient::Fade(const bool toBlack)

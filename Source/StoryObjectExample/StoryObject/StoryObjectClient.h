@@ -25,6 +25,7 @@ TMap<EStoryObjectPhase, FPhaseImplementation> m_phaseImplementations;\
 UPROPERTY()\
 FClientFinishedPhase m_onClientFinishedPhaseEvent;\
 public:\
+const FStoryObjectClientPhaseTicketInfo INVALID_INFO {EStoryObjectPhase::NONE, {}};\
 virtual UStoryObjectClientPhaseTicket* ExecutePhase_Implementation(EStoryObjectPhase currentPhase) override;\
 UFUNCTION(BlueprintCallable)\
 void NotifyTaskIsDone() const;
@@ -40,10 +41,9 @@ UStoryObjectClientPhaseTicket* class::ExecutePhase_Implementation(const EStoryOb
 	if (m_phaseImplementations[currentPhase].IsBound())\
 	{\
 		const FStoryObjectClientPhaseTicketInfo implementationInfo = m_phaseImplementations[currentPhase].Execute();\
-		if (implementationInfo.EndPhase != EStoryObjectPhase::NONE)\
-			info = implementationInfo;\
-		else\
-			info.Dependencies = implementationInfo.Dependencies;\
+		if (implementationInfo.EndPhase == EStoryObjectPhase::NONE)\
+			return nullptr;\
+		info = implementationInfo;\
 	}\
 	ticket->SetTicketInfo(info);\
 	return ticket;\

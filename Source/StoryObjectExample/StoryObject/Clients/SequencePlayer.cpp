@@ -35,7 +35,7 @@ FStoryObjectClientPhaseTicketInfo USequencePlayer::PlaySequence()
 
 	Sequence->GetSequencePlayer()->Play();
 
-	return {};
+	return {EStoryObjectPhase::RUNNING, {}};
 }
 
 void USequencePlayer::BeginPlay()

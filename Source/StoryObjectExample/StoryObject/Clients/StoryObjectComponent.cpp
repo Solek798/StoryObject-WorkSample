@@ -2,8 +2,6 @@
 
 
 #include "StoryObjectComponent.h"
-#include "StoryObjectClient.h"
-#include "StoryObjectClientPhaseTicket.h"
 
 
 GENERATE_CLIENT_IMPLEMENTATION_BODY(UStoryObjectComponent)

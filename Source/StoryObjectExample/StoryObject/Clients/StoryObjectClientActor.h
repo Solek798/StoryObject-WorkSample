@@ -3,8 +3,8 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "StoryObjectClient.h"
 #include "GameFramework/Actor.h"
+#include "StoryObjectExample/StoryObject/StoryObjectClient.h"
 #include "StoryObjectClientActor.generated.h"
 
 UCLASS(Abstract, BlueprintType, Blueprintable)
