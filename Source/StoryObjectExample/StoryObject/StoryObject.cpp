@@ -159,10 +159,9 @@ void AStoryObject::ExecutePhaseOnClient(const EStoryObjectPhase phase, UObject* 
 void AStoryObject::OnClientFinishedPhase(UStoryObjectClientPhaseTicket* clientTicket)
 {
 	const EStoryObjectPhase currentPhase = GetCurrentPhase();
-	FStoryObjectClientPhaseTicketCollection test = m_ticketRegister.FindChecked(currentPhase);
-	TArray<UStoryObjectClientPhaseTicket*> test2 = test.Tickets;
+	FStoryObjectClientPhaseTicketCollection collection = m_ticketRegister.FindChecked(currentPhase);
 	
-	for (UStoryObjectClientPhaseTicket* ticket : test2)
+	for (UStoryObjectClientPhaseTicket* ticket : collection.Tickets)
 		ticket->FulfillDependency(clientTicket->GetClient());
 
 	m_ticketRegister[currentPhase].Tickets.Remove(clientTicket);

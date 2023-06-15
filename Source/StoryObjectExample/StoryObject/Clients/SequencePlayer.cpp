@@ -38,11 +38,24 @@ FStoryObjectClientPhaseTicketInfo USequencePlayer::PlaySequence()
 	return {EStoryObjectPhase::RUNNING, {}};
 }
 
+FStoryObjectClientPhaseTicketInfo USequencePlayer::StopSequence()
+{
+	// make sure callback is canceled
+	GetOwner()->GetWorldTimerManager().ClearTimer(m_handle);
+
+	Sequence->GetSequencePlayer()->Stop();
+
+	NotifyTaskIsDone();
+	
+	return {EStoryObjectPhase::STOPPING, {}};
+}
+
 void USequencePlayer::BeginPlay()
 {
 	Super::BeginPlay();
 
 	DECLARE_PHASE_IMPLEMENTATION(RUNNING, &USequencePlayer::PlaySequence)
+	DECLARE_PHASE_IMPLEMENTATION(STOPPING, &USequencePlayer::StopSequence)
 }
 
 void USequencePlayer::OnCloseToSequenceEnd()

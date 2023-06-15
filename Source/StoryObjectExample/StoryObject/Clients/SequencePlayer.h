@@ -29,6 +29,9 @@ public:
 	UFUNCTION()
 	FStoryObjectClientPhaseTicketInfo PlaySequence();
 
+	UFUNCTION()
+	FStoryObjectClientPhaseTicketInfo StopSequence();
+
 protected:
 	virtual void BeginPlay() override;
 	
